@@ -12,10 +12,10 @@ leaderboards while building a verifiable portfolio.
 > The FastAPI/PostgreSQL API and the React single-page app are implemented,
 > tested and documented, and they have been exercised together locally. What
 > remains before a public launch: live GitHub OAuth with real credentials, a
-> committed end-to-end suite, branch protection for the new CI pipeline, a
-> staging → production deployment, and the license decision. The phase-by-phase
-> plan lives in [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are
-> listed [below](#known-limitations).
+> committed end-to-end suite, a staging → production deployment, and the license
+> decision. The phase-by-phase plan lives in
+> [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are listed
+> [below](#known-limitations).
 
 ## Current status
 
@@ -31,7 +31,7 @@ end-to-end suite, hardening and deployment remain.**
 | Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised in a Playwright smoke run |
 | Live GitHub OAuth | ⚠️ Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
 | Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in the local smoke run; not yet exercised from a deployment |
-| CI pipeline | ✅ Added | GitHub Actions — backend (pytest + Ruff) and frontend (Vitest, oxlint, Prettier, tsc, build); branch protection not yet enabled |
+| CI pipeline | ✅ Enforced | GitHub Actions — backend (pytest + Ruff) and frontend (Vitest, oxlint, Prettier, tsc, build); status checks required on `main` before merging |
 | Staging / production | ⛔ Not started | Deployment topology and the Render guide are documented, but unexercised |
 | License | ⛔ Undecided | Owner decision required |
 
@@ -321,7 +321,8 @@ At the current commit, the following has been verified:
 - **Frontend** — 37 Vitest tests pass; oxlint, Prettier, `tsc -b` and the
   production build are clean.
 - **CI** — GitHub Actions runs the same backend and frontend checks on every
-  push to `main` and on pull requests (the end-to-end suite is not in CI yet).
+  push to `main` and on pull requests, with status checks required before
+  merging (the end-to-end suite is not in CI yet).
 - **Local integration** — the backend, a seeded PostgreSQL database and the Vite
   dev server run together. A Playwright smoke run covered the major routes,
   created a real submission, observed its auto-triggered evaluation (including
@@ -412,8 +413,7 @@ Immediate next actions (Phase 3):
 1. Create a GitHub OAuth App and verify login, logout and session revocation on
    a staging URL.
 2. Commit the Playwright end-to-end suite and add it to CI (the backend and
-   frontend checks already run); enable branch protection so the checks are
-   required for merges.
+   frontend checks already run and are required for merges).
 3. Add CSP/security headers at the hosting layer, then run accessibility and
    dependency audits.
 

@@ -30,9 +30,10 @@ If the API is not on `http://localhost:8000`, set `VITE_API_PROXY_TARGET`. See
 
 ## Before you open a pull request
 
-CI runs the same checks on every push to `main` and on every pull request —
-see [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run them locally
-before pushing.
+CI runs the same checks on every push to `main` and on every pull request, and
+status checks are required before a pull request can be merged — see
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run them locally before
+pushing.
 
 Backend (from `backend/`):
 

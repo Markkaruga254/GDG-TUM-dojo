@@ -6,10 +6,11 @@ the completed phases live in [`ARCHITECTURE.md`](ARCHITECTURE.md),
 [`frontend/README.md`](../frontend/README.md).
 
 > **Current phase: Phase 3 — verification and hardening — in progress.** The
-> backend and frontend checks now run in CI; live GitHub OAuth verification, the
-> committed end-to-end suite, browser/security hardening and observability
-> remain. The v1 scope is feature-complete and runs locally, but it has not been
-> deployed and live GitHub OAuth has not been exercised with real credentials.
+> backend and frontend checks run in CI, with status checks required for merges
+> on `main`; live GitHub OAuth verification, the committed end-to-end suite,
+> browser/security hardening and observability remain. The v1 scope is
+> feature-complete and runs locally, but it has not been deployed and live
+> GitHub OAuth has not been exercised with real credentials.
 
 ## Phase overview
 
@@ -100,16 +101,16 @@ behave as described.
 ### 3.2 Committed end-to-end suite and CI
 
 CI is in place: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs
-on every push to `main` and on every pull request —
+on every push to `main` and on every pull request, and status checks are
+required on `main` before merging —
 
 - **backend** — Ruff check/format and the pytest suite against disposable
   PostgreSQL service databases (`buildarena_test` + `buildarena_mig`, so the
   migration tests run instead of being skipped);
 - **frontend** — Vitest, oxlint, Prettier, `tsc -b` and the production build.
 
-Still missing: branch protection (the checks are not yet required for merges)
-and the committed end-to-end suite. The Playwright smoke run remains a local,
-uncommitted script.
+Still missing: the committed end-to-end suite. The Playwright smoke run remains
+a local, uncommitted script.
 
 **Work**
 
@@ -118,7 +119,6 @@ uncommitted script.
 - Cover anonymous browsing, the sign-in boundary, submission → auto-evaluation →
   results, staff moderation and challenge authoring.
 - Add an end-to-end job to CI and upload traces/screenshots on failure.
-- Enable branch protection so the checks are required for merges.
 
 **Done when:** CI is green on `main` and required for merges. Unit and API tests
 keep the GitHub transport mocked; any live-GitHub check is explicit and opt-in.
