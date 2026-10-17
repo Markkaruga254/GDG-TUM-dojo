@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Design tokens
+ *
+ * Dark is the flagship theme; light is a first-class alternative. Values are
+ * wired into Tailwind via `@theme inline` so every utility resolves through a
+ * CSS variable and switching themes is a single class change.
+ * ------------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  --ba-bg: #f6f7fb;
+  --ba-bg-soft: #eef1f7;
+  --ba-surface: #ffffff;
+  --ba-surface-2: #f3f5fa;
+  --ba-surface-3: #e9edf6;
+  --ba-line: #e3e8f1;
+  --ba-line-strong: #c8d1e3;
+  --ba-ink: #101828;
+  --ba-muted: #46536a;
+  --ba-faint: #6a768d;
+
+  --ba-primary: #1a73e8;
+  --ba-primary-hover: #1666cf;
+  --ba-primary-fg: #ffffff;
+  --ba-primary-soft: #e8f0fe;
+  --ba-accent: #7433e0;
+  --ba-accent-soft: #f1e9fe;
+
+  --ba-success: #188038;
+  --ba-success-soft: #e6f4ea;
+  --ba-warning: #a05a00;
+  --ba-warning-soft: #fdf3da;
+  --ba-danger: #d93025;
+  --ba-danger-soft: #fce8e6;
+  --ba-danger-fg: #ffffff;
+
+  --ba-ring: rgb(26 115 232 / 0.45);
+  --ba-shadow-card: 0 1px 2px rgb(16 24 40 / 0.05), 0 10px 28px -18px rgb(16 24 40 / 0.22);
+  --ba-shadow-pop: 0 16px 40px -12px rgb(16 24 40 / 0.24), 0 2px 8px rgb(16 24 40 / 0.08);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --ba-bg: #0b0f1a;
+  --ba-bg-soft: #0e1423;
+  --ba-surface: #111828;
+  --ba-surface-2: #16203a;
+  --ba-surface-3: #1d2947;
+  --ba-line: #22304f;
+  --ba-line-strong: #35486f;
+  --ba-ink: #e8ecf5;
+  --ba-muted: #9aa7c2;
+  --ba-faint: #6d7a99;
+
+  --ba-primary: #8ab4f8;
+  --ba-primary-hover: #a5c6fa;
+  --ba-primary-fg: #0a1224;
+  --ba-primary-soft: rgb(138 180 248 / 0.14);
+  --ba-accent: #bfa5ff;
+  --ba-accent-soft: rgb(191 165 255 / 0.14);
+
+  --ba-success: #81c995;
+  --ba-success-soft: rgb(129 201 149 / 0.14);
+  --ba-warning: #fdd663;
+  --ba-warning-soft: rgb(253 214 99 / 0.13);
+  --ba-danger: #f28b82;
+  --ba-danger-soft: rgb(242 139 130 / 0.14);
+  --ba-danger-fg: #2b0a07;
+
+  --ba-ring: rgb(138 180 248 / 0.5);
+  --ba-shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 14px 34px -20px rgb(0 0 0 / 0.65);
+  --ba-shadow-pop: 0 18px 48px -14px rgb(0 0 0 / 0.7), 0 2px 10px rgb(0 0 0 / 0.45);
+}
+
+@theme inline {
+  --color-bg: var(--ba-bg);
+  --color-bg-soft: var(--ba-bg-soft);
+  --color-surface: var(--ba-surface);
+  --color-surface-2: var(--ba-surface-2);
+  --color-surface-3: var(--ba-surface-3);
+  --color-line: var(--ba-line);
+  --color-line-strong: var(--ba-line-strong);
+  --color-ink: var(--ba-ink);
+  --color-muted: var(--ba-muted);
+  --color-faint: var(--ba-faint);
+
+  --color-primary: var(--ba-primary);
+  --color-primary-hover: var(--ba-primary-hover);
+  --color-primary-fg: var(--ba-primary-fg);
+  --color-primary-soft: var(--ba-primary-soft);
+  --color-accent: var(--ba-accent);
+  --color-accent-soft: var(--ba-accent-soft);
+
+  --color-success: var(--ba-success);
+  --color-success-soft: var(--ba-success-soft);
+  --color-warning: var(--ba-warning);
+  --color-warning-soft: var(--ba-warning-soft);
+  --color-danger: var(--ba-danger);
+  --color-danger-soft: var(--ba-danger-soft);
+  --color-danger-fg: var(--ba-danger-fg);
+
+  --font-sans:
+    "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --shadow-card: var(--ba-shadow-card);
+  --shadow-pop: var(--ba-shadow-pop);
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.21, 0.72, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-scale-in: scale-in 0.22s cubic-bezier(0.21, 0.72, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.28s cubic-bezier(0.21, 0.72, 0.3, 1) both;
+  --animate-drift: drift 18s ease-in-out infinite alternate;
+
+  @keyframes slide-in {
+    from {
+      opacity: 0.4;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes drift {
+    from {
+      transform: translate3d(-2%, -1%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(3%, 2%, 0) scale(1.08);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--ba-bg);
+    color: var(--ba-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--ba-primary) 28%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ba-ring);
+    outline-offset: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ba-line-strong) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Sonner toasts follow the app theme tokens. */
+.ba-toaster {
+  --normal-bg: var(--ba-surface);
+  --normal-text: var(--ba-ink);
+  --normal-border: var(--ba-line);
+  --success-bg: var(--ba-surface);
+  --success-text: var(--ba-ink);
+  --success-border: var(--ba-success);
+  --warning-bg: var(--ba-surface);
+  --warning-text: var(--ba-ink);
+  --warning-border: var(--ba-warning);
+  --error-bg: var(--ba-surface);
+  --error-text: var(--ba-ink);
+  --error-border: var(--ba-danger);
+  --border-radius: 12px;
+}
