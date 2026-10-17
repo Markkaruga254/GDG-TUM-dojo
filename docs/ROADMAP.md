@@ -80,6 +80,7 @@ repeatable.
 ### 3.1 Live GitHub OAuth
 
 The OAuth flow has only run against the mocked transport in the test suite.
+
 **Work**
 
 - Create a GitHub OAuth App for staging and configure `GITHUB_CLIENT_ID`,
@@ -97,6 +98,7 @@ behave as described.
 ### 3.2 Committed end-to-end suite and CI
 
 The Playwright smoke run was a local, uncommitted script.
+
 **Work**
 
 - Add a Playwright project to the repository with a disposable seeded database
