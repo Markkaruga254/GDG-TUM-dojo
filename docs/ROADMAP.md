@@ -5,8 +5,10 @@ the completed phases live in [`ARCHITECTURE.md`](ARCHITECTURE.md),
 [`backend/README.md`](../backend/README.md) and
 [`frontend/README.md`](../frontend/README.md).
 
-> **Current phase: Phase 2 complete. Phase 3 — verification and hardening — is
-> next.** The v1 scope is feature-complete and runs locally, but it has not been
+> **Current phase: Phase 3 — verification and hardening — in progress.** The
+> backend and frontend checks now run in CI; live GitHub OAuth verification, the
+> committed end-to-end suite, browser/security hardening and observability
+> remain. The v1 scope is feature-complete and runs locally, but it has not been
 > deployed and live GitHub OAuth has not been exercised with real credentials.
 
 ## Phase overview
@@ -15,7 +17,7 @@ the completed phases live in [`ARCHITECTURE.md`](ARCHITECTURE.md),
 | --- | --- | --- |
 | 1 | Backend API and evaluation platform | ✅ Complete |
 | 2 | Student SPA and staff console | ✅ Complete |
-| 3 | Verification and hardening | ⏭ Next |
+| 3 | Verification and hardening | ⏳ In progress |
 | 4 | Staging and production launch | Planned |
 | 5 | Scale and product enhancements | Later (candidates) |
 
@@ -97,7 +99,17 @@ behave as described.
 
 ### 3.2 Committed end-to-end suite and CI
 
-The Playwright smoke run was a local, uncommitted script.
+CI is in place: [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs
+on every push to `main` and on every pull request —
+
+- **backend** — Ruff check/format and the pytest suite against disposable
+  PostgreSQL service databases (`buildarena_test` + `buildarena_mig`, so the
+  migration tests run instead of being skipped);
+- **frontend** — Vitest, oxlint, Prettier, `tsc -b` and the production build.
+
+Still missing: branch protection (the checks are not yet required for merges)
+and the committed end-to-end suite. The Playwright smoke run remains a local,
+uncommitted script.
 
 **Work**
 
@@ -105,9 +117,8 @@ The Playwright smoke run was a local, uncommitted script.
   and a cookie-bootstrap helper (never real tokens).
 - Cover anonymous browsing, the sign-in boundary, submission → auto-evaluation →
   results, staff moderation and challenge authoring.
-- Add CI for backend (`pytest`, Ruff), frontend (`vitest`, oxlint, Prettier,
-  `tsc -b`, build) and the end-to-end suite; upload traces/screenshots on
-  failure.
+- Add an end-to-end job to CI and upload traces/screenshots on failure.
+- Enable branch protection so the checks are required for merges.
 
 **Done when:** CI is green on `main` and required for merges. Unit and API tests
 keep the GitHub transport mocked; any live-GitHub check is explicit and opt-in.

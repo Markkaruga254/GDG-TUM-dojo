@@ -498,8 +498,9 @@ backend/
   transport used by the test suite. Repository metadata reads *have* been
   exercised locally against the public GitHub API — including a real
   evaluation — but not from a deployed environment.
-- No CI pipeline or committed end-to-end suite yet; checks and the Playwright
-  smoke run are local (see the [roadmap](../docs/ROADMAP.md), Phase 3).
+- No committed end-to-end suite yet; the backend checks (Ruff + this test
+  suite) run in CI, while end-to-end verification remains a local Playwright
+  smoke run (see the [roadmap](../docs/ROADMAP.md), Phase 3).
 - Private repositories are not read; evaluation expects public repositories
   unless a `GITHUB_API_TOKEN` with access is configured.
 - Manual-review check types and CSV/PDF exports are out of scope for v1.

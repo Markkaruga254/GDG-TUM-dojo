@@ -173,7 +173,8 @@ whose repository checks read metadata live from the public GitHub API.
   origins have only been exercised on localhost.
 - The app is fully client-rendered: no SSR/SSG, and static hosts must rewrite
   unknown paths to `index.html` for client-side routing.
-- No committed end-to-end suite or CI pipeline for the frontend yet.
+- No committed end-to-end suite yet; the frontend checks (Vitest, oxlint,
+  Prettier, `tsc -b`, build) run in CI.
 - No Content-Security-Policy or security headers are shipped with the SPA; the
   static host must add them (Phase 3 in the roadmap).
 - The API issues `SameSite=Lax` cookies, so the SPA and API should share a site.

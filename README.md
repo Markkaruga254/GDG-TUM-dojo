@@ -8,19 +8,20 @@ discover engineering challenges, submit a GitHub repository for each challenge,
 receive an automated evaluation, earn points and badges, and compete on public
 leaderboards while building a verifiable portfolio.
 
-> **Project status — v1 feature-complete; verification and deployment are next.**
+> **Project status — v1 feature-complete; Phase 3 verification is underway.**
 > The FastAPI/PostgreSQL API and the React single-page app are implemented,
 > tested and documented, and they have been exercised together locally. What
 > remains before a public launch: live GitHub OAuth with real credentials, a
-> committed end-to-end suite and CI, a staging → production deployment, and the
-> license decision. The phase-by-phase plan lives in
-> [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are listed
-> [below](#known-limitations).
+> committed end-to-end suite, branch protection for the new CI pipeline, a
+> staging → production deployment, and the license decision. The phase-by-phase
+> plan lives in [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are
+> listed [below](#known-limitations).
 
 ## Current status
 
-**Phase 2 of 5 complete — the platform is feature-complete for its v1 scope.
-Phase 3 (verification and hardening) is next.**
+**Phase 3 of 5 in progress — the platform is feature-complete for its v1 scope.
+CI now runs the backend and frontend checks; live OAuth verification, the
+end-to-end suite, hardening and deployment remain.**
 
 | Area | State | Notes |
 | --- | --- | --- |
@@ -30,7 +31,7 @@ Phase 3 (verification and hardening) is next.**
 | Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised in a Playwright smoke run |
 | Live GitHub OAuth | ⚠️ Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
 | Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in the local smoke run; not yet exercised from a deployment |
-| CI pipeline | ⛔ Not started | Checks currently run locally |
+| CI pipeline | ✅ Added | GitHub Actions — backend (pytest + Ruff) and frontend (Vitest, oxlint, Prettier, tsc, build); branch protection not yet enabled |
 | Staging / production | ⛔ Not started | Deployment topology and the Render guide are documented, but unexercised |
 | License | ⛔ Undecided | Owner decision required |
 
@@ -115,6 +116,7 @@ Detailed component breakdowns, request flows and the data model live in
 
 ```
 cloud-track-dojo/
+├── .github/workflows/ci.yml # CI — backend pytest/Ruff + frontend checks
 ├── backend/                 # FastAPI service — see backend/README.md
 │   ├── app/                 # api/v1, core, db, evaluation, integrations, models, repositories, schemas, services
 │   ├── migrations/          # Alembic environment + revisions
@@ -318,6 +320,8 @@ At the current commit, the following has been verified:
   Ruff lint and format are clean.
 - **Frontend** — 37 Vitest tests pass; oxlint, Prettier, `tsc -b` and the
   production build are clean.
+- **CI** — GitHub Actions runs the same backend and frontend checks on every
+  push to `main` and on pull requests (the end-to-end suite is not in CI yet).
 - **Local integration** — the backend, a seeded PostgreSQL database and the Vite
   dev server run together. A Playwright smoke run covered the major routes,
   created a real submission, observed its auto-triggered evaluation (including
@@ -369,9 +373,9 @@ examples in [`backend/README.md#api-overview`](backend/README.md#api-overview)):
 
 Current limitations (v1 scope — documented deliberately rather than hidden):
 
-- **No CI pipeline or committed end-to-end suite yet**: backend tests and
-  frontend unit tests run locally, and end-to-end verification was a one-off
-  local Playwright smoke run (the script is not committed).
+- **No committed end-to-end suite yet**: backend tests and frontend checks run
+  in CI, but end-to-end verification remains a one-off local Playwright smoke
+  run (the script is not committed).
 - **Evaluations are synchronous** in the API process (`SynchronousExecutor`
   behind an `EvaluationExecutor` seam — queue-ready, but no worker is shipped).
 - **The rate limiter is in-process** and therefore per instance/worker; apply
@@ -399,7 +403,7 @@ Phase-by-phase scope, acceptance criteria and explicit non-goals live in
 | --- | --- | --- |
 | 1 | Backend API, evaluation, leaderboard, badges, audit | ✅ Done |
 | 2 | Student SPA and staff console | ✅ Done |
-| 3 | Live OAuth, committed E2E + CI, browser/security hardening, observability | ⏭ Next |
+| 3 | Live OAuth, committed E2E + CI, browser/security hardening, observability | ⏳ In progress |
 | 4 | Staging → production launch: managed PostgreSQL, static SPA, OAuth apps, backups, runbook | Planned |
 | 5 | Queue-backed evaluation, Redis rate limiting, notifications, manual review, exports, catalogue facets | Later (candidates) |
 
@@ -407,8 +411,9 @@ Immediate next actions (Phase 3):
 
 1. Create a GitHub OAuth App and verify login, logout and session revocation on
    a staging URL.
-2. Commit the Playwright end-to-end suite and wire backend + frontend checks
-   into CI.
+2. Commit the Playwright end-to-end suite and add it to CI (the backend and
+   frontend checks already run); enable branch protection so the checks are
+   required for merges.
 3. Add CSP/security headers at the hosting layer, then run accessibility and
    dependency audits.
 

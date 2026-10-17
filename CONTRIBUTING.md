@@ -30,8 +30,9 @@ If the API is not on `http://localhost:8000`, set `VITE_API_PROXY_TARGET`. See
 
 ## Before you open a pull request
 
-There is **no CI pipeline yet** (Phase 3 in the roadmap). Run the checks locally
-and mention the results in the pull request.
+CI runs the same checks on every push to `main` and on every pull request —
+see [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Run them locally
+before pushing.
 
 Backend (from `backend/`):
 
@@ -93,6 +94,7 @@ Never run migration experiments against a database that contains real data.
 | Frontend hooks | `frontend/src/hooks/` |
 | Design tokens and styles | `frontend/src/styles/globals.css` |
 | Frontend tests | `frontend/src/**/*.test.ts(x)` and `frontend/src/test/setup.ts` |
+| CI workflows | `.github/workflows/ci.yml` |
 
 ## Code style
 
