@@ -1,0 +1,58 @@
+# Local development stack: PostgreSQL + the Build Arena API.
+#
+#   cp backend/.env.example .env        # optional — edit GitHub OAuth credentials
+#   docker compose up --build           # starts db → applies migrations → serves API
+#
+# The API is then reachable at http://localhost:8000 (docs at /docs).
+# POSTGRES_PORT is overridable so an existing PostgreSQL on 5432 never conflicts:
+#   POSTGRES_PORT=5433 docker compose up --build
+
+name: build-arena
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-buildarena}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-buildarena}
+      POSTGRES_DB: ${POSTGRES_DB:-buildarena}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-buildarena} -d ${POSTGRES_DB:-buildarena}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-buildarena}:${POSTGRES_PASSWORD:-buildarena}@db:5432/${POSTGRES_DB:-buildarena}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:8000}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:5173}
+      FRONTEND_AUTH_REDIRECT_URL: ${FRONTEND_AUTH_REDIRECT_URL:-http://localhost:5173/auth/callback}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_API_TOKEN: ${GITHUB_API_TOKEN:-}
+      ADMIN_GITHUB_USERNAMES: ${ADMIN_GITHUB_USERNAMES:-}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Development convenience: migrate, optionally seed badges, then serve.
+    # In production run `alembic upgrade head` as a separate release step.
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m scripts.seed_badges &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  db-data:
