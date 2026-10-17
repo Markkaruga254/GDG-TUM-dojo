@@ -8,12 +8,34 @@ discover engineering challenges, submit a GitHub repository for each challenge,
 receive an automated evaluation, earn points and badges, and compete on public
 leaderboards while building a verifiable portfolio.
 
-> **Project status: active development — backend MVP + frontend application.**
-> The FastAPI/PostgreSQL backend and the React single-page app in this repository
-> are implemented, tested and documented. GitHub OAuth has been exercised
-> end-to-end only against a mocked GitHub transport in the test suite, not yet
-> against live GitHub credentials; and no production or staging deployment
-> exists yet. See [Known limitations and next steps](#known-limitations-and-next-steps).
+> **Project status — v1 feature-complete; verification and deployment are next.**
+> The FastAPI/PostgreSQL API and the React single-page app are implemented,
+> tested and documented, and they have been exercised together locally. What
+> remains before a public launch: live GitHub OAuth with real credentials, a
+> committed end-to-end suite and CI, a staging → production deployment, and the
+> license decision. The phase-by-phase plan lives in
+> [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are listed
+> [below](#known-limitations).
+
+## Current status
+
+**Phase 2 of 5 complete — the platform is feature-complete for its v1 scope.
+Phase 3 (verification and hardening) is next.**
+
+| Area | State | Notes |
+| --- | --- | --- |
+| Backend API | ✅ Complete | FastAPI + PostgreSQL; 35 paths / 37 operations; evaluation engine, leaderboard and badge policies, audit trail |
+| Frontend SPA | ✅ Complete | React 19 + Vite; 20 route entries covering the student flows and the staff console; dark/light themes |
+| Automated tests | ✅ Passing | 209 backend pytest tests · 37 frontend Vitest tests |
+| Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised in a Playwright smoke run |
+| Live GitHub OAuth | ⚠️ Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
+| Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in the local smoke run; not yet exercised from a deployment |
+| CI pipeline | ⛔ Not started | Checks currently run locally |
+| Staging / production | ⛔ Not started | Deployment topology and the Render guide are documented, but unexercised |
+| License | ⛔ Undecided | Owner decision required |
+
+Planned work, acceptance criteria and explicit non-goals are in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Intended users
 
@@ -26,7 +48,7 @@ leaderboards while building a verifiable portfolio.
 
 ## Key capabilities
 
-| Area | What the backend MVP provides |
+| Area | What the platform provides |
 | --- | --- |
 | Authentication | GitHub OAuth (`state` + PKCE), database-backed sessions (only token hashes stored), HttpOnly cookies, CSRF double-submit protection, roles `student` → `moderator` → `admin` |
 | Challenges | Draft → published → archived lifecycle, tracks, difficulty, schedules, validated per-challenge evaluation configs |
@@ -66,7 +88,7 @@ talks to GitHub for OAuth and repository metadata. The frontend is a Vite +
 React single-page app that consumes the API over cookie-based sessions and holds
 no business logic of its own. Evaluations run behind an `EvaluationExecutor`
 seam: the shipped implementation is synchronous, so no Redis or worker process
-is required for the MVP (a queue-backed executor can be added later without
+is required for v1 (a queue-backed executor can be added later without
 changing the API).
 
 ```mermaid
@@ -105,10 +127,11 @@ cloud-track-dojo/
 │   ├── src/                 # api, components, hooks, lib, pages, styles, test
 │   ├── public/              # favicon
 │   ├── index.html           # entry document + pre-paint theme bootstrap
-│   ├── package.json         # scripts: dev, build, lint, typecheck, test
+│   ├── package.json         # scripts: dev, build, lint, format, typecheck, test
 │   └── .env.example         # API base URL / dev proxy target
 ├── docs/
 │   ├── ARCHITECTURE.md      # components, flows, data model, deployment topology
+│   ├── ROADMAP.md           # current phase, next work, acceptance criteria, non-goals
 │   └── SECURITY.md          # security model, secret handling, vulnerability reporting
 ├── CONTRIBUTING.md
 ├── docker-compose.yml       # PostgreSQL + API for local development
@@ -133,7 +156,7 @@ Frontend (`frontend/`):
 
 | Layer | Choice |
 | --- | --- |
-| Runtime | Node.js `^20.19` or `>=22.12` |
+| Runtime | Node.js `^20.19` or `>=22.12` (Vite 8 requirement) |
 | Framework | React 19 + TypeScript (strict), built with Vite 8 |
 | Styling | Tailwind CSS v4 with CSS custom-property design tokens (dark-first + light theme) |
 | Routing | React Router 8, route-level code splitting |
@@ -145,7 +168,7 @@ Frontend (`frontend/`):
 ## Prerequisites
 
 - Python **3.12+**
-- Node.js **`^20.19` or `>=22.12`** + npm (for the frontend)
+- Node.js **`^20.19` or `>=22.12`** (Vite 8 requirement) + npm (for the frontend)
 - PostgreSQL **14+** (16 recommended; Docker Compose runs 16)
 - Docker + Docker Compose (optional — only for the containerized workflow)
 - A GitHub OAuth App (only needed to exercise sign-in flows locally)
@@ -287,13 +310,28 @@ npm run typecheck     # tsc -b (strict)
 npm run build         # typecheck + production bundle
 ```
 
+### Verification snapshot
+
+At the current commit, the following has been verified:
+
+- **Backend** — 209 pytest tests pass against disposable PostgreSQL databases;
+  Ruff lint and format are clean.
+- **Frontend** — 37 Vitest tests pass; oxlint, Prettier, `tsc -b` and the
+  production build are clean.
+- **Local integration** — the backend, a seeded PostgreSQL database and the Vite
+  dev server run together. A Playwright smoke run covered the major routes,
+  created a real submission, observed its auto-triggered evaluation (including
+  repository metadata read live from the public GitHub API) and reported no
+  console or page errors. The smoke script is not committed and is not part of
+  CI; see Phase 3 in the [roadmap](docs/ROADMAP.md).
+
 ## API overview
 
 All endpoints are served under `/api/v1`, with built-in documentation:
 
 - Swagger UI — `/docs`
 - ReDoc — `/redoc`
-- OpenAPI JSON — `/openapi.json` (35 paths / 37 operations in the current MVP)
+- OpenAPI JSON — `/openapi.json` (35 paths / 37 operations in the current v1 API)
 
 Errors use a machine-readable envelope
 (`{"error": {"code", "message", "details"}}`) and list endpoints return
@@ -318,19 +356,22 @@ examples in [`backend/README.md#api-overview`](backend/README.md#api-overview)):
   limits, operations, deployment, troubleshooting).
 - [`frontend/README.md`](frontend/README.md) — frontend guide (setup, scripts,
   project structure, design system, API client and auth notes, testing).
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — components, request flows,
-  data model, deployment topology, extension points.
-- [`docs/SECURITY.md`](docs/SECURITY.md) — security model, secret handling and
-  vulnerability reporting.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — full-stack components,
+  request flows, frontend architecture, data model, deployment topology,
+  extension points.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — current phase, Phase 3–5 work,
+  acceptance criteria, non-goals and open decisions.
+- [`docs/SECURITY.md`](docs/SECURITY.md) — API and client-side security model,
+  secret handling and vulnerability reporting.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution workflow and checks.
 
-## Known limitations and next steps
+## Known limitations
 
-Current limitations (MVP scope — documented deliberately rather than hidden):
+Current limitations (v1 scope — documented deliberately rather than hidden):
 
-- The frontend ships without an automated browser-test suite: the API contract
-  is covered by the backend tests and the SPA by unit tests, while end-to-end
-  verification has been a local Playwright smoke run (not part of CI).
+- **No CI pipeline or committed end-to-end suite yet**: backend tests and
+  frontend unit tests run locally, and end-to-end verification was a one-off
+  local Playwright smoke run (the script is not committed).
 - **Evaluations are synchronous** in the API process (`SynchronousExecutor`
   behind an `EvaluationExecutor` seam — queue-ready, but no worker is shipped).
 - **The rate limiter is in-process** and therefore per instance/worker; apply
@@ -341,18 +382,35 @@ Current limitations (MVP scope — documented deliberately rather than hidden):
   locally (including a real evaluation), but not in a deployed environment.
 - Private repositories are not read; evaluations expect public repositories (a
   `GITHUB_API_TOKEN` can raise API rate limits but grants no extra access in
-  the MVP flow).
+  the v1 flow).
+- **No Content-Security-Policy yet.** The API sends baseline security headers
+  (nosniff, frame denial, referrer and permissions policies), but the SPA host
+  must add CSP/HSTS. Session cookies are `SameSite=Lax`, so the SPA and API
+  should share a site unless the backend cookie configuration is extended.
 - Manual-review check types and CSV/PDF exports are out of scope.
 - No staging or production deployment exists yet.
 
-Next milestones (not yet implemented):
+## Roadmap
 
-1. Verify live GitHub OAuth (real OAuth app credentials) end-to-end, including
-   the deployed cookie flow.
-2. Deploy a staging environment (Render or equivalent) with release-step
-   migrations and the static frontend, then production.
-3. Add a background worker/queue behind the executor seam and Redis-backed rate
-   limiting if scale requires it.
+Phase-by-phase scope, acceptance criteria and explicit non-goals live in
+[`docs/ROADMAP.md`](docs/ROADMAP.md). In short:
+
+| Phase | Focus | State |
+| --- | --- | --- |
+| 1 | Backend API, evaluation, leaderboard, badges, audit | ✅ Done |
+| 2 | Student SPA and staff console | ✅ Done |
+| 3 | Live OAuth, committed E2E + CI, browser/security hardening, observability | ⏭ Next |
+| 4 | Staging → production launch: managed PostgreSQL, static SPA, OAuth apps, backups, runbook | Planned |
+| 5 | Queue-backed evaluation, Redis rate limiting, notifications, manual review, exports, catalogue facets | Later (candidates) |
+
+Immediate next actions (Phase 3):
+
+1. Create a GitHub OAuth App and verify login, logout and session revocation on
+   a staging URL.
+2. Commit the Playwright end-to-end suite and wire backend + frontend checks
+   into CI.
+3. Add CSP/security headers at the hosting layer, then run accessibility and
+   dependency audits.
 
 ## Security notes
 

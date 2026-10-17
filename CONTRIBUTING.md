@@ -1,29 +1,54 @@
 # Contributing to GDG TUM Build Arena
 
-Thanks for helping build the platform. This project is in active development
-and the backend MVP is the current focus — keep pull requests focused and small.
+Thanks for helping build the platform. The project is a FastAPI + PostgreSQL
+backend and a React single-page frontend, both in this repository and both in
+scope for contributions. The current phase and planned work are tracked in the
+[roadmap](docs/ROADMAP.md).
 
 ## Development setup
 
-Follow [`backend/README.md`](backend/README.md). The fastest path is
-Docker Compose from the repository root:
+The fastest backend path is Docker Compose from the repository root:
 
 ```bash
 cp backend/.env.example .env    # optional — add GitHub OAuth credentials
 docker compose up --build
 ```
 
-For a plain-Python setup (needed to run the test suite), see
+For a plain-Python setup (needed to run the backend test suite), see
 [Local setup](backend/README.md#local-setup-no-docker) in the backend guide.
+
+Run the frontend against the API in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev        # http://localhost:5173, /api proxied to the backend
+```
+
+If the API is not on `http://localhost:8000`, set `VITE_API_PROXY_TARGET`. See
+[`frontend/README.md`](frontend/README.md) for configuration details.
 
 ## Before you open a pull request
 
-Run the same checks CI would run (from `backend/`):
+There is **no CI pipeline yet** (Phase 3 in the roadmap). Run the checks locally
+and mention the results in the pull request.
+
+Backend (from `backend/`):
 
 ```bash
 .venv/bin/pytest            # requires TEST_DATABASE_URL (and optionally TEST_MIGRATION_DATABASE_URL)
 .venv/bin/ruff check app tests scripts migrations
 .venv/bin/ruff format --check app tests scripts migrations
+```
+
+Frontend (from `frontend/`):
+
+```bash
+npm test              # Vitest + Testing Library
+npm run lint          # oxlint
+npm run format:check  # Prettier
+npm run typecheck     # tsc -b (strict)
+npm run build         # typecheck + production bundle
 ```
 
 If you changed models or migrations, also verify migration health against a
@@ -59,11 +84,19 @@ Never run migration experiments against a database that contains real data.
 | Request/response schemas | `backend/app/schemas/` |
 | Evaluation checks | `backend/app/evaluation/` |
 | GitHub integration | `backend/app/integrations/github.py` |
-| Tests | `backend/tests/` (fixtures in `conftest.py`, data builders in `factories.py`) |
+| Backend tests | `backend/tests/` (fixtures in `conftest.py`, data builders in `factories.py`) |
 | Migrations | `backend/migrations/versions/` |
 | Operational scripts | `backend/scripts/` |
+| SPA entry / routes | `frontend/src/App.tsx` and `frontend/src/pages/` |
+| API client and types | `frontend/src/lib/api.ts`, `frontend/src/api/` |
+| Shared components | `frontend/src/components/` (ui, common, domain, layout) |
+| Frontend hooks | `frontend/src/hooks/` |
+| Design tokens and styles | `frontend/src/styles/globals.css` |
+| Frontend tests | `frontend/src/**/*.test.ts(x)` and `frontend/src/test/setup.ts` |
 
 ## Code style
+
+Backend:
 
 - Ruff enforces lint and formatting (line length 100); run it before pushing.
 - SQLAlchemy 2.x style with explicit types; FastAPI handlers are synchronous
@@ -74,10 +107,38 @@ Never run migration experiments against a database that contains real data.
   against a disposable PostgreSQL database and must not touch the network
   (GitHub calls are mocked).
 
+Frontend:
+
+- TypeScript is strict; keep `frontend/src/api/types.ts` in sync with the
+  backend Pydantic schemas.
+- Use design-token classes (`bg-surface`, `text-ink`, `border-line`, …) rather
+  than raw colours so both themes keep working.
+- Follow the existing React Query patterns (query-key factory, typed API
+  modules) instead of ad-hoc fetches; all HTTP goes through `src/lib/api.ts`.
+- oxlint and Prettier are enforced; new interactive primitives should be
+  keyboard-accessible and covered where practical.
+
+## Documentation
+
+Documentation is part of the deliverable. When behaviour or project status
+changes, update the relevant file:
+
+- [`README.md`](README.md) — status, capabilities, quick starts.
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — phases, next work and acceptance
+  criteria; move items between phases as they land.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — components, flows, data model.
+- [`docs/SECURITY.md`](docs/SECURITY.md) — controls and limitations.
+- [`backend/README.md`](backend/README.md) / [`frontend/README.md`](frontend/README.md)
+  — area-specific setup and reference material.
+
+Do not describe unverified behaviour as implemented. Mark status explicitly.
+
 ## Security
 
 - Never commit real credentials, tokens, `.env` files or database dumps.
   Fixtures may contain obvious fake tokens only.
+- Only non-secret `VITE_*` values belong in frontend configuration — the built
+  bundle is public.
 - Report vulnerabilities privately — see [`docs/SECURITY.md`](docs/SECURITY.md).
 - Privileged actions must be audited (`audit_logs`) and authorization checks
   must follow the existing role/ownership patterns.

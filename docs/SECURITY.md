@@ -1,4 +1,8 @@
-# Security — GDG TUM Build Arena backend
+# Security — GDG TUM Build Arena
+
+This document covers the FastAPI API and the React SPA. The API is the only
+trusted enforcement point; the SPA is a public static bundle and must not be
+relied on for authorization.
 
 ## Reporting a vulnerability
 
@@ -41,7 +45,29 @@ branch. There are no production deployments maintained by this repository.
 | Logging | Structured logs redact authorization headers, cookies and tokens |
 | Audit trail | Every privileged or score-affecting action writes a sanitized `audit_logs` row (sensitive keys redacted, payloads capped) |
 | Code execution | None — evaluations read public GitHub metadata only; repositories are never cloned and student code is never executed |
+| Security headers | API responses set `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`; a Content-Security-Policy is not configured yet (Phase 3) |
 | Configuration | Production settings are validated at startup (debug off, secure cookies, no wildcard origins, OAuth configured); optional `ALLOWED_HOSTS` host-header enforcement |
+
+## Client-side (SPA) security
+
+The SPA is served as a static bundle, so anything in it is public. Security comes
+from keeping secrets out of it and treating the API as the only authority.
+
+| Control | Implementation |
+| --- | --- |
+| Token exposure | The session token exists only in the HttpOnly `ba_session` cookie. The SPA never reads or stores it; `localStorage` holds only the theme preference (`ba-theme`). |
+| Session transport | `fetch` uses `credentials: "include"`; cookies are `HttpOnly` (session) and `SameSite=Lax`, with `Secure` in production. |
+| CSRF | The readable `ba_csrf` cookie is mirrored into `X-CSRF-Token` on unsafe methods; the API validates the double-submit pair and browser Origin. The CSRF cookie is intentionally not HttpOnly. |
+| Output encoding | React escaping is used throughout; there is no `dangerouslySetInnerHTML`, `eval` or other raw-HTML sink. |
+| Untrusted links | Repository URLs must be GitHub repositories; evidence URLs must be `http(s)` with no embedded credentials, validated server-side. Links open with `rel="noreferrer noopener"`. |
+| Build-time config | Only non-secret `VITE_*` values are embedded in the bundle. `VITE_API_BASE_URL` is public by design — never put credentials in frontend env files. |
+| Third-party content | Fonts are bundled locally. The only cross-origin content is GitHub avatar images; no third-party scripts are loaded. |
+| Supply chain | `package-lock.json` is committed; automated dependency auditing is not wired up yet (Phase 3). |
+
+**Residual risk:** an XSS or compromised dependency would run with the user's
+session, because HttpOnly protects the token from theft but not from actions
+performed in-session. CSP enforcement and dependency auditing are Phase 3
+hardening items (see the [roadmap](ROADMAP.md)).
 
 ## Secret handling
 
@@ -65,6 +91,10 @@ branch. There are no production deployments maintained by this repository.
 - Set `TRUST_PROXY_HEADERS=true` **only** behind a trusted reverse proxy that
   overwrites `X-Forwarded-For`; otherwise client IPs can be spoofed and the
   rate limiter evaded.
+- Serve the SPA over HTTPS with a Content-Security-Policy and HSTS; scope
+  `connect-src` to the API origin and `img-src` to the GitHub avatar hosts. Keep
+  the SPA and API on the same site unless the cookie configuration is redesigned
+  (`SameSite=Lax` is currently fixed).
 - Apply platform-level rate limits and TLS termination at the platform/proxy
   layer when scaling beyond a single instance (the in-process limiter is per
   worker).
@@ -73,7 +103,7 @@ branch. There are no production deployments maintained by this repository.
 - Review `audit_logs` periodically; it contains actor usernames and action
   metadata and should be treated as sensitive operational data.
 
-## Known security limitations (MVP)
+## Known security limitations (v1)
 
 - The rate limiter is in-process and therefore per instance/worker; horizontal
   scaling needs platform-level limits.
@@ -86,4 +116,8 @@ branch. There are no production deployments maintained by this repository.
 - No WAF, DDoS protection, or database-at-rest encryption is shipped — those
   are platform/operations concerns.
 - Private-repository evaluation is not implemented; a token with broader scope
-  than needed is not required by the MVP flow.
+  than needed is not required by the v1 flow.
+- No Content-Security-Policy is configured yet, and the SPA host does not ship
+  security headers — the API's baseline headers cover API responses only.
+- Live GitHub OAuth has not been exercised with real credentials; frontend
+  dependency and bundle scanning are not automated yet.

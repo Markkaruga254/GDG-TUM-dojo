@@ -1,16 +1,20 @@
-# Architecture — GDG TUM Build Arena backend
+# Architecture — GDG TUM Build Arena
 
-How the backend is put together, how requests flow through it, and where the
-extension points are. Setup instructions live in
-[`backend/README.md`](../backend/README.md); the security design lives in
-[`SECURITY.md`](SECURITY.md).
+How the full-stack platform is put together: the FastAPI API, the React SPA,
+how requests flow through them, and where the extension points are. Setup
+instructions live in [`backend/README.md`](../backend/README.md) and
+[`frontend/README.md`](../frontend/README.md); the security design lives in
+[`SECURITY.md`](SECURITY.md) and the current phase and planned work in
+[`ROADMAP.md`](ROADMAP.md).
 
 ## System context
 
-A single FastAPI service owns all business logic and persistence. PostgreSQL is
-the only stateful dependency; GitHub is an external dependency for OAuth and
-repository metadata used by evaluations. There is no Redis, message broker or
-worker process in the MVP.
+A single FastAPI service owns all business logic and persistence. The React SPA
+in [`frontend/`](../frontend/README.md) is the browser client: it holds
+presentation and client-side state only, and every authorization or scoring rule
+is enforced by the API. PostgreSQL is the only stateful dependency; GitHub is an
+external dependency for OAuth and repository metadata used by evaluations. There
+is no Redis, message broker or worker process in v1.
 
 ```mermaid
 flowchart TB
@@ -64,7 +68,7 @@ Module responsibilities:
 | `migrations/` | Alembic environment and revisions (initial revision `b3eafbacb03b`) |
 | `scripts/` | Operational scripts (`seed_badges`, `promote_admin`) |
 
-## Request flow
+## Backend request flow
 
 1. Uvicorn passes the request to the ASGI app built by `create_app()`
    (`app/main.py`). Middleware applies CORS, host checks, CSRF verification for
@@ -108,6 +112,63 @@ sequenceDiagram
     API->>DB: Upsert user, store session token hash
     API-->>Browser: Set HttpOnly session + CSRF cookies, redirect to frontend
 ```
+
+## Frontend architecture
+
+The SPA is a static Vite build in [`frontend/`](../frontend/README.md). It
+contains no business rules: routes render data fetched from the API, and the
+server remains the authority for authorization, scoring and state transitions.
+
+| Concern | Implementation |
+| --- | --- |
+| Build | Vite 8 + React 19 + TypeScript (strict); hashed assets in `frontend/dist` |
+| Routing | React Router 8, `BrowserRouter`; `React.lazy` code-splits every page except Home/NotFound |
+| Access gates | `RequireAuth`, `RequireStaff`, `RequireAdmin` wrap routes and render sign-in/forbidden states — UX only; the API re-checks every request |
+| Server state | TanStack Query v5 — 20 s stale time, no retries on 4xx, a query-key factory per resource |
+| API access | `src/lib/api.ts` — `credentials: "include"`, CSRF header mirroring, `ApiError` normalization |
+| Theme | Tailwind v4 + CSS custom-property tokens; pre-paint `localStorage` bootstrap, dark default, full light override |
+| Feedback | Skeletons, empty/error states, sonner toasts, Radix dialogs/menus/tabs/tooltips |
+
+### Route map
+
+| Route | Access | Purpose |
+| --- | --- | --- |
+| `/` | public | Landing page and highlights |
+| `/challenges`, `/challenges/:slug` | public | Catalogue and challenge detail |
+| `/leaderboard`, `/badges`, `/u/:username` | public | Rankings, badge catalogue, public portfolio |
+| `/challenges/:slug/submit` | signed in | Submission form |
+| `/submissions`, `/submissions/:id` | signed in | Personal history and evaluation results |
+| `/settings` | signed in | Profile and session |
+| `/auth/callback` | public | OAuth completion; confirms `/auth/me`, then redirects |
+| `/staff` | staff | Console overview |
+| `/staff/challenges`, `/staff/challenges/new`, `/staff/challenges/:slug/edit` | staff | Challenge authoring |
+| `/staff/submissions`, `/staff/users`, `/staff/badges` | staff | Moderation, people, badge catalogue |
+| `/staff/audit` | admin | Audit log |
+| `*` | public | 404 page |
+
+### Browser request flow
+
+1. On load, `fetchMe()` calls `GET /api/v1/auth/me`; `401` maps to a signed-out
+   state rather than an error. Route gates render a loading state first.
+2. Reads go through React Query hooks; list responses use the backend page
+   envelope. The catalogue's facet options come from a bounded
+   `page_size=100` fetch of the visible catalogue.
+3. Writes go through the single fetch wrapper, which mirrors the readable
+   `ba_csrf` cookie into `X-CSRF-Token` and includes credentials.
+4. Creating a submission navigates to `/submissions/:id`. When the result is
+   `pending` with zero attempts, the results page triggers
+   `POST /submissions/{id}/evaluate` once (guarded against re-entry) and polls
+   while the status is `pending`/`queued`/`running`.
+5. `ApiError` preserves the backend code, message and details so pages can render
+   specific states (for example duplicate submission or rate-limit retry).
+
+### Staff authoring semantics
+
+The public challenge payload does not expose stored check parameters, so the
+edit form preserves the existing evaluation configuration unless the author
+explicitly flips **Replace evaluation configuration**. Replacing rebuilds the
+checks from the public summaries with default parameters, and the UI warns about
+the reset. This avoids silently overwriting parameters the client cannot see.
 
 ## Evaluation pipeline
 
@@ -185,14 +246,21 @@ leaderboards exclude inactive users.
 
 ## Deployment topology
 
-- **Local development** — `docker compose up --build`: PostgreSQL 16 + the API
-  image; the container start command applies migrations, seeds badges and
-  serves Uvicorn. Ports are overridable (`POSTGRES_PORT`, `API_PORT`).
-- **Production (planned/documented)** — one API container (or native Python
-  service) plus managed PostgreSQL. Migrations run as a separate release step;
-  the platform healthcheck targets `/health`; set `ENVIRONMENT=production`
-  (enables secure cookies and strict config validation) and
-  `TRUST_PROXY_HEADERS=true` only behind a trusted reverse proxy.
+- **Local development** — `docker compose up --build` starts PostgreSQL 16 and
+  the API (migrations, badge seed and Uvicorn on start). The SPA runs separately
+  with `npm run dev`, proxying `/api` to the API so the browser sees one origin.
+- **Production (planned, documented but not yet exercised)** — a static host/CDN
+  serves `frontend/dist` and rewrites unknown paths to `index.html`; one API
+  container (or native Python service) serves `/api/v1`; managed PostgreSQL
+  stores all state. Set `VITE_API_BASE_URL` at build time, add the SPA origin to
+  `FRONTEND_ORIGINS`, run migrations as a release step, target `/health` for
+  platform health checks, and set `ENVIRONMENT=production` (secure cookies and
+  strict config validation). Set `TRUST_PROXY_HEADERS=true` only behind a
+  trusted reverse proxy.
+- **Cookie/site constraint** — session and CSRF cookies are `SameSite=Lax`.
+  Prefer a same-site topology (`app.example.org` + `api.example.org`). A
+  cross-site topology would require extending the backend cookie configuration
+  and is not supported by the current implementation.
 - **Scaling caveat** — the in-process rate limiter is per instance; apply
   platform-level limits when running more than one instance or worker. The
   leaderboard and evaluation claims are safe under concurrency thanks to the
@@ -211,8 +279,11 @@ Designed-for seams (no behavior change required in the API layer):
    (indexes, aggregation) do not touch routers.
 4. **GitHub client** — timeouts, retries and the optional server-side token are
    centralized in `app/integrations/github.py`.
+5. **Frontend modules** — new pages are lazy-loaded routes in
+   `frontend/src/App.tsx`; API contracts are kept in
+   `frontend/src/api/types.ts`. A backend resource change starts there.
 
-## Non-goals (MVP)
+## Non-goals (v1)
 
 - Server-rendered pages — the platform is an API plus a client-side SPA that
   lives in [`frontend/`](../frontend/README.md).

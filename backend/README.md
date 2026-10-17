@@ -6,7 +6,9 @@ Campus at the Technical University of Mombasa.
 
 Students authenticate with GitHub, publish a project repository per challenge,
 and receive an automated, metadata-only evaluation with a public leaderboard and
-badges.
+badges. This service is the API behind the React single-page app in
+[`frontend/`](../frontend/README.md); the current phase and next work are in the
+[project roadmap](../docs/ROADMAP.md).
 
 - **API**: FastAPI, served under `/api/v1` (OpenAPI docs at `/docs`)
 - **Data**: PostgreSQL + SQLAlchemy 2.x + Alembic migrations
@@ -14,13 +16,14 @@ badges.
 - **Tests**: pytest + HTTPX against a real PostgreSQL database
 - **Lint**: Ruff (checks + formatting)
 
-No Redis, worker or queue is required for the MVP: evaluations run behind an
+No Redis, worker or queue is required for v1: evaluations run behind an
 `EvaluationExecutor` seam (synchronous implementation shipped; a queue-backed
 implementation can be dropped in without touching the API — see
 [Evaluation architecture](#evaluation-architecture)).
 
 Related documentation: [architecture](../docs/ARCHITECTURE.md) ·
-[security](../docs/SECURITY.md) · [contributing](../CONTRIBUTING.md).
+[security](../docs/SECURITY.md) · [roadmap](../docs/ROADMAP.md) ·
+[contributing](../CONTRIBUTING.md).
 
 ---
 
@@ -319,7 +322,7 @@ The engine is split so that the API does not depend on *how* evaluation runs:
 - `EvaluationService` owns the state machine
   (pending → running → passed/failed/error) and the audit trail;
 - `EvaluationExecutor` is the seam. The shipped `SynchronousExecutor` runs the
-  evaluation inline (single-process MVP). A queue/worker deployment only needs
+  evaluation inline (single-process v1). A queue/worker deployment only needs
   a new executor implementation; the claim step in the repository uses an
   atomic `UPDATE ... WHERE status IN (...)` so concurrent triggers cannot
   double-run an evaluation.
@@ -370,7 +373,7 @@ badges manually via the admin API (audited).
 
 ## Rate limiting
 
-The MVP uses an **in-process sliding-window limiter**
+v1 uses an **in-process sliding-window limiter**
 (`app/core/ratelimit.py`) keyed by client IP + scope:
 
 - auth endpoints per minute (`AUTH_RATE_LIMIT_PER_MINUTE`, default 30);
@@ -491,12 +494,15 @@ backend/
   The state machine and executor seam are queue-ready, but no worker is
   shipped — long GitHub API calls occupy the request.
 - The in-process rate limiter is per instance (see above).
-- Live GitHub integration (OAuth and repository metadata) has been exercised
-  only against the mocked transport used by the test suite — not yet against
-  github.com with real credentials.
+- Live GitHub OAuth is unverified: the flow has only run against the mocked
+  transport used by the test suite. Repository metadata reads *have* been
+  exercised locally against the public GitHub API — including a real
+  evaluation — but not from a deployed environment.
+- No CI pipeline or committed end-to-end suite yet; checks and the Playwright
+  smoke run are local (see the [roadmap](../docs/ROADMAP.md), Phase 3).
 - Private repositories are not read; evaluation expects public repositories
   unless a `GITHUB_API_TOKEN` with access is configured.
-- Manual-review check types and CSV/PDF exports are out of scope for the MVP.
+- Manual-review check types and CSV/PDF exports are out of scope for v1.
 
 ## License
 

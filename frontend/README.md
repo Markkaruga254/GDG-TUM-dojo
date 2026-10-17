@@ -12,7 +12,12 @@ Built with **Vite + React 19 + TypeScript** against the FastAPI backend in
 > plus a local Playwright smoke run across the major routes). Live GitHub OAuth
 > has **not** been exercised with real credentials yet — locally, sign-in was
 > simulated with backend-minted session cookies. See
-> [Known limitations](#known-limitations).
+> [Known limitations](#known-limitations) and the project
+> [roadmap](../docs/ROADMAP.md) for the next phase.
+
+Related documentation: [project overview](../README.md) ·
+[roadmap](../docs/ROADMAP.md) · [architecture](../docs/ARCHITECTURE.md) ·
+[security](../docs/SECURITY.md).
 
 ## Stack
 
@@ -138,7 +143,7 @@ frontend/
   errors. Submission results poll while an evaluation is pending/queued/running.
 - **Sign-in** redirects to `GET /api/v1/auth/github/login`; the backend returns
   to `/auth/callback?status=ok&code=…` and the page then confirms the session
-  via `/users/me`.
+  via `/auth/me`.
 - **Staff challenge editing** is conservative by design: the API does not
   return stored evaluation parameters, so the edit form preserves the current
   configuration unless you explicitly flip _Replace evaluation configuration_.
@@ -152,12 +157,14 @@ npm test
 Vitest runs in jsdom with Testing Library. The committed suite covers the
 high-risk helpers: the API client (envelope → `ApiError`, CSRF header, network
 failure, 204 handling), URL utils (formatting, deadlines, avatars), GitHub
-repo-URL parsing, and the button primitive.
+repo-URL parsing, and the button + switch primitives (including accessible-name
+wiring).
 
 End-to-end verification was a local Playwright smoke run (not committed):
 backend + seeded demo database, session cookies injected into the browser
-context, every route screenshotted and asserted free of console/page errors —
-including a real submission POST and its auto-triggered evaluation.
+context, all major routes screenshotted and asserted free of console/page
+errors — including a real submission POST and its auto-triggered evaluation,
+whose repository checks read metadata live from the public GitHub API.
 
 ## Known limitations
 
@@ -167,6 +174,12 @@ including a real submission POST and its auto-triggered evaluation.
 - The app is fully client-rendered: no SSR/SSG, and static hosts must rewrite
   unknown paths to `index.html` for client-side routing.
 - No committed end-to-end suite or CI pipeline for the frontend yet.
+- No Content-Security-Policy or security headers are shipped with the SPA; the
+  static host must add them (Phase 3 in the roadmap).
+- The API issues `SameSite=Lax` cookies, so the SPA and API should share a site.
+  A cross-site deployment would require a backend cookie-configuration change.
+- `VITE_*` values are compiled into the public bundle — never put secrets in
+  frontend environment files.
 - Search-facet options (tracks/tags) are derived from a bounded `page_size=100`
   fetch of the catalogue — fine for the expected catalogue size, but it will
   need a dedicated facets endpoint if the catalogue grows.
