@@ -1,0 +1,41 @@
+# Environment files — never commit real secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+
+# Local artifacts: logs, database dumps, credentials
+*.log
+*.dump
+*.sql.gz
+*.pem
+*.key
+*.p12
+pgdata/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Docker Compose local overrides
+docker-compose.override.yml
+docker-compose.override.yaml
