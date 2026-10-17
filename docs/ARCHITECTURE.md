@@ -15,7 +15,7 @@ worker process in the MVP.
 ```mermaid
 flowchart TB
     subgraph clients["Clients"]
-        browser["Browser / future SPA"]
+        browser["React SPA — frontend/<br/>(browser clients)"]
         curl["curl / API scripts"]
     end
 
@@ -214,7 +214,8 @@ Designed-for seams (no behavior change required in the API layer):
 
 ## Non-goals (MVP)
 
-- Frontend (separate project).
+- Server-rendered pages — the platform is an API plus a client-side SPA that
+  lives in [`frontend/`](../frontend/README.md).
 - Executing or sandboxing student code — only metadata is inspected.
 - Manual-review check types, exports and notifications.
 - Multi-tenant or per-organization isolation.

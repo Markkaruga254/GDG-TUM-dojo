@@ -8,9 +8,9 @@ discover engineering challenges, submit a GitHub repository for each challenge,
 receive an automated evaluation, earn points and badges, and compete on public
 leaderboards while building a verifiable portfolio.
 
-> **Project status: active development — backend MVP.**
-> The FastAPI/PostgreSQL backend in this repository is implemented, tested and
-> documented. The frontend has not been started; GitHub OAuth has been exercised
+> **Project status: active development — backend MVP + frontend application.**
+> The FastAPI/PostgreSQL backend and the React single-page app in this repository
+> are implemented, tested and documented. GitHub OAuth has been exercised
 > end-to-end only against a mocked GitHub transport in the test suite, not yet
 > against live GitHub credentials; and no production or staging deployment
 > exists yet. See [Known limitations and next steps](#known-limitations-and-next-steps).
@@ -42,17 +42,36 @@ leaderboards while building a verifiable portfolio.
 metadata through the GitHub REST API; the application never clones or runs
 submitted code.
 
+### Frontend experience
+
+The single-page app in [`frontend/`](frontend/README.md) covers the full student
+journey and the staff console:
+
+- **Students** — landing page, challenge catalogue with search, track/difficulty/
+  tag filters and pagination, challenge detail, the submission flow with repo
+  validation, evaluation results with a per-check breakdown, personal submission
+  history, leaderboards, the badge case, public profiles and profile settings.
+- **Staff (moderator/admin)** — console with overview metrics, challenge
+  authoring including the full evaluation-config editor, submission moderation
+  (disqualify, reinstate, score overrides, forced re-runs), user/role/status
+  management, badge management and the audit log.
+- **UX** — dark-first theme with a light mode toggle, responsive layout down to
+  mobile widths, skeleton loading states, toast feedback and accessible dialogs
+  and menus built on Radix primitives.
+
 ## Architecture
 
 The backend is a single FastAPI service that keeps all state in PostgreSQL and
-talks to GitHub for OAuth and repository metadata. Evaluations run behind an
-`EvaluationExecutor` seam: the shipped implementation is synchronous, so no
-Redis or worker process is required for the MVP (a queue-backed executor can be
-added later without changing the API).
+talks to GitHub for OAuth and repository metadata. The frontend is a Vite +
+React single-page app that consumes the API over cookie-based sessions and holds
+no business logic of its own. Evaluations run behind an `EvaluationExecutor`
+seam: the shipped implementation is synchronous, so no Redis or worker process
+is required for the MVP (a queue-backed executor can be added later without
+changing the API).
 
 ```mermaid
 flowchart LR
-    student["Students & staff<br/>(browser)"] --> middleware
+    spa["Students & staff<br/>React SPA — frontend/"] --> middleware
     clients["API clients<br/>(curl, scripts)"] --> middleware
 
     subgraph api["FastAPI service — /api/v1"]
@@ -82,6 +101,12 @@ cloud-track-dojo/
 │   ├── Dockerfile           # production image (unprivileged user, healthcheck)
 │   ├── pyproject.toml       # dependencies, Ruff and pytest configuration
 │   └── .env.example         # configuration template (placeholders only)
+├── frontend/                # React SPA — see frontend/README.md
+│   ├── src/                 # api, components, hooks, lib, pages, styles, test
+│   ├── public/              # favicon
+│   ├── index.html           # entry document + pre-paint theme bootstrap
+│   ├── package.json         # scripts: dev, build, lint, typecheck, test
+│   └── .env.example         # API base URL / dev proxy target
 ├── docs/
 │   ├── ARCHITECTURE.md      # components, flows, data model, deployment topology
 │   └── SECURITY.md          # security model, secret handling, vulnerability reporting
@@ -104,9 +129,23 @@ cloud-track-dojo/
 | Packaging | `pyproject.toml` (hatchling), editable install |
 | Containerization | Docker / Docker Compose, Uvicorn |
 
+Frontend (`frontend/`):
+
+| Layer | Choice |
+| --- | --- |
+| Runtime | Node.js `^20.19` or `>=22.12` |
+| Framework | React 19 + TypeScript (strict), built with Vite 8 |
+| Styling | Tailwind CSS v4 with CSS custom-property design tokens (dark-first + light theme) |
+| Routing | React Router 8, route-level code splitting |
+| Data fetching | TanStack Query v5 over a typed `fetch` client that mirrors the API contract |
+| UI primitives | Radix UI (dialog, alert-dialog, dropdown-menu, tabs, tooltip), lucide-react icons, sonner toasts |
+| Tests | Vitest + Testing Library (jsdom) |
+| Quality | oxlint + Prettier |
+
 ## Prerequisites
 
 - Python **3.12+**
+- Node.js **`^20.19` or `>=22.12`** + npm (for the frontend)
 - PostgreSQL **14+** (16 recommended; Docker Compose runs 16)
 - Docker + Docker Compose (optional — only for the containerized workflow)
 - A GitHub OAuth App (only needed to exercise sign-in flows locally)
@@ -145,14 +184,39 @@ cp .env.example .env            # set DATABASE_URL + GitHub OAuth values
 
 See [`backend/README.md`](backend/README.md) for the full setup guide.
 
+## Quick start (frontend)
+
+The SPA expects a running API (defaults to `http://localhost:8000`):
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local       # optional — see Configuration
+npm run dev                      # http://localhost:5173, /api proxied to the API
+```
+
+Production build:
+
+```bash
+npm run build                    # typecheck + static bundle in frontend/dist/
+npm run preview                  # serve the built bundle locally
+```
+
+When the API is not on `localhost:8000`, set `VITE_API_PROXY_TARGET` for the dev
+server. For a deployed build, set `VITE_API_BASE_URL` to the API origin (leave
+it empty when the SPA and API share an origin). See
+[`frontend/README.md`](frontend/README.md) for the full guide.
+
 ## Configuration
 
-Two `.env` files are used, both starting from
-[`backend/.env.example`](backend/.env.example):
+Environment files are never committed; example files ship placeholders only:
 
 - **repo root `.env`** — read by Docker Compose for `${VAR}` interpolation
   (optional; the compose file ships sensible development defaults);
-- **`backend/.env`** — read by the application when running outside Docker.
+- **`backend/.env`** — read by the application when running outside Docker
+  (template: [`backend/.env.example`](backend/.env.example));
+- **`frontend/.env.local`** — optional build-time settings for the SPA
+  (template: [`frontend/.env.example`](frontend/.env.example)).
 
 All values in `.env.example` are placeholders; never commit a filled-in `.env`
 (it is git-ignored). The most important variables:
@@ -213,6 +277,16 @@ TEST_MIGRATION_DATABASE_URL=postgresql+psycopg://user:pass@127.0.0.1:5432/builda
 - Migration tests (`tests/test_migrations.py`) are skipped unless
   `TEST_MIGRATION_DATABASE_URL` is set.
 
+Frontend (from `frontend/`):
+
+```bash
+npm test              # Vitest + Testing Library (jsdom)
+npm run lint          # oxlint
+npm run format:check  # Prettier
+npm run typecheck     # tsc -b (strict)
+npm run build         # typecheck + production bundle
+```
+
 ## API overview
 
 All endpoints are served under `/api/v1`, with built-in documentation:
@@ -242,6 +316,8 @@ examples in [`backend/README.md#api-overview`](backend/README.md#api-overview)):
 - [`backend/README.md`](backend/README.md) — complete backend guide (setup,
   configuration, migrations, OAuth, API, evaluation/leaderboard policies, rate
   limits, operations, deployment, troubleshooting).
+- [`frontend/README.md`](frontend/README.md) — frontend guide (setup, scripts,
+  project structure, design system, API client and auth notes, testing).
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — components, request flows,
   data model, deployment topology, extension points.
 - [`docs/SECURITY.md`](docs/SECURITY.md) — security model, secret handling and
@@ -252,14 +328,17 @@ examples in [`backend/README.md#api-overview`](backend/README.md#api-overview)):
 
 Current limitations (MVP scope — documented deliberately rather than hidden):
 
-- **No frontend** yet; the API is usable via its OpenAPI docs, curl or scripts.
+- The frontend ships without an automated browser-test suite: the API contract
+  is covered by the backend tests and the SPA by unit tests, while end-to-end
+  verification has been a local Playwright smoke run (not part of CI).
 - **Evaluations are synchronous** in the API process (`SynchronousExecutor`
   behind an `EvaluationExecutor` seam — queue-ready, but no worker is shipped).
 - **The rate limiter is in-process** and therefore per instance/worker; apply
   platform-level limits when scaling horizontally.
-- **Live GitHub integration is not yet verified** outside the mocked tests:
-  OAuth against real credentials and repository metadata through the live
-  GitHub API have not been exercised in a deployed environment.
+- **Live GitHub OAuth is not yet verified**: sign-in has only run against the
+  mocked transport in the test suite, never with real OAuth app credentials.
+  Repository metadata reads against the public GitHub API *have* been exercised
+  locally (including a real evaluation), but not in a deployed environment.
 - Private repositories are not read; evaluations expect public repositories (a
   `GITHUB_API_TOKEN` can raise API rate limits but grants no extra access in
   the MVP flow).
@@ -268,12 +347,11 @@ Current limitations (MVP scope — documented deliberately rather than hidden):
 
 Next milestones (not yet implemented):
 
-1. Build the frontend and connect it to these APIs (CORS allowlist and cookie
-   flows are already prepared).
-2. Verify live GitHub OAuth (real OAuth app credentials) end-to-end.
-3. Deploy a staging environment (Render or equivalent) with release-step
-   migrations, then production.
-4. Add a background worker/queue behind the executor seam and Redis-backed rate
+1. Verify live GitHub OAuth (real OAuth app credentials) end-to-end, including
+   the deployed cookie flow.
+2. Deploy a staging environment (Render or equivalent) with release-step
+   migrations and the static frontend, then production.
+3. Add a background worker/queue behind the executor seam and Redis-backed rate
    limiting if scale requires it.
 
 ## Security notes
