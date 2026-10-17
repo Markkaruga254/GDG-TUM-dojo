@@ -136,7 +136,7 @@ export function App() {
               <Route
                 path="settings"
                 element={
-                  <RequireAuth message="Sign in to manage your profile and track preferences.">
+                  <RequireAuth message="Sign in to manage your profile and session.">
                     <SettingsPage />
                   </RequireAuth>
                 }
