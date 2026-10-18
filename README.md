@@ -10,28 +10,29 @@ leaderboards while building a verifiable portfolio.
 
 > **Project status — v1 feature-complete; Phase 3 verification is underway.**
 > The FastAPI/PostgreSQL API and the React single-page app are implemented,
-> tested and documented, and they have been exercised together locally. What
-> remains before a public launch: live GitHub OAuth with real credentials, a
-> committed end-to-end suite, a staging → production deployment, and the license
-> decision. The phase-by-phase plan lives in
+> tested and documented, and a committed Playwright suite drives the full stack
+> end-to-end. What remains before a public launch: live GitHub OAuth with real
+> credentials, a staging → production deployment, and the license decision. The
+> phase-by-phase plan lives in
 > [`docs/ROADMAP.md`](docs/ROADMAP.md); current limitations are listed
 > [below](#known-limitations).
 
 ## Current status
 
 **Phase 3 of 5 in progress — the platform is feature-complete for its v1 scope.
-CI now runs the backend and frontend checks; live OAuth verification, the
-end-to-end suite, hardening and deployment remain.**
+CI now runs the backend, frontend and end-to-end checks; live OAuth
+verification, hardening and deployment remain.**
 
 | Area | State | Notes |
 | --- | --- | --- |
 | Backend API | ✅ Complete | FastAPI + PostgreSQL; 35 paths / 37 operations; evaluation engine, leaderboard and badge policies, audit trail |
 | Frontend SPA | ✅ Complete | React 19 + Vite; 20 route entries covering the student flows and the staff console; dark/light themes |
 | Automated tests | ✅ Passing | 209 backend pytest tests · 37 frontend Vitest tests |
-| Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised in a Playwright smoke run |
+| End-to-end suite | ✅ Passing locally | Committed Playwright project (9 tests) with a disposable seeded database and a mock GitHub API; covers anonymous browsing, the sign-in boundary, submission → auto-evaluation → results, staff moderation and challenge authoring |
+| Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised |
 | Live GitHub OAuth | ⚠️ Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
-| Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in the local smoke run; not yet exercised from a deployment |
-| CI pipeline | ✅ Enforced | GitHub Actions — backend (pytest + Ruff) and frontend (Vitest, oxlint, Prettier, tsc, build); status checks required on `main` before merging |
+| Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in local runs; not yet exercised from a deployment |
+| CI pipeline | ✅ Enforced | GitHub Actions — backend (pytest + Ruff), frontend (Vitest, oxlint, Prettier, tsc, build) and end-to-end (Playwright, failure artifacts uploaded); status checks required on `main` before merging |
 | Staging / production | ⛔ Not started | Deployment topology and the Render guide are documented, but unexercised |
 | License | ⛔ Undecided | Owner decision required |
 
@@ -59,7 +60,7 @@ Planned work, acceptance criteria and explicit non-goals are in
 | Leaderboard | Overall and per-track rankings plus a personal rank summary |
 | Badges | Seeded catalogue, data-driven server-side rules, idempotent auto-awarding, manual grants |
 | Admin | User roles and status, submission moderation, score overrides, badge management, audit log |
-| Operations | Alembic migrations, `/health` + `/ready` probes, structured logs with redaction, rate limiting, Docker + Docker Compose, pytest suite, Ruff |
+| Operations | Alembic migrations, `/health` + `/ready` probes, structured logs with redaction, rate limiting, Docker + Docker Compose, pytest + Playwright suites, Ruff |
 
 **Student code is never executed.** Evaluations read public GitHub repository
 metadata through the GitHub REST API; the application never clones or runs
@@ -116,11 +117,11 @@ Detailed component breakdowns, request flows and the data model live in
 
 ```
 cloud-track-dojo/
-├── .github/workflows/ci.yml # CI — backend pytest/Ruff + frontend checks
+├── .github/workflows/ci.yml # CI — backend + frontend checks + Playwright E2E
 ├── backend/                 # FastAPI service — see backend/README.md
 │   ├── app/                 # api/v1, core, db, evaluation, integrations, models, repositories, schemas, services
 │   ├── migrations/          # Alembic environment + revisions
-│   ├── scripts/             # seed_badges, promote_admin
+│   ├── scripts/             # seed_badges, seed_e2e, promote_admin
 │   ├── tests/               # pytest suite (real PostgreSQL, mocked GitHub)
 │   ├── Dockerfile           # production image (unprivileged user, healthcheck)
 │   ├── pyproject.toml       # dependencies, Ruff and pytest configuration
@@ -135,6 +136,11 @@ cloud-track-dojo/
 │   ├── ARCHITECTURE.md      # components, flows, data model, deployment topology
 │   ├── ROADMAP.md           # current phase, next work, acceptance criteria, non-goals
 │   └── SECURITY.md          # security model, secret handling, vulnerability reporting
+├── e2e/                     # Playwright end-to-end suite — see e2e/README.md
+│   ├── tests/               # anonymous, submission, moderation and authoring specs
+│   ├── scripts/             # mock GitHub API, database prep, server launchers
+│   ├── support/             # seeded session bootstrap + shared constants
+│   └── playwright.config.ts # dedicated ports + three-server webServer stack
 ├── CONTRIBUTING.md
 ├── docker-compose.yml       # PostgreSQL + API for local development
 └── README.md
@@ -166,6 +172,15 @@ Frontend (`frontend/`):
 | UI primitives | Radix UI (dialog, alert-dialog, dropdown-menu, tabs, tooltip), lucide-react icons, sonner toasts |
 | Tests | Vitest + Testing Library (jsdom) |
 | Quality | oxlint + Prettier |
+
+End-to-end (`e2e/`):
+
+| Layer | Choice |
+| --- | --- |
+| Runner | Playwright (Chromium), 9 tests across 4 spec files |
+| Target stack | the real FastAPI service + Vite dev server + disposable seeded PostgreSQL (`buildarena_e2e`) |
+| GitHub API | local mock server (`e2e/scripts/mock-github.mjs`) — deterministic and offline |
+| Quality | oxlint + Prettier + `tsc --noEmit` |
 
 ## Prerequisites
 
@@ -312,6 +327,19 @@ npm run typecheck     # tsc -b (strict)
 npm run build         # typecheck + production bundle
 ```
 
+End-to-end (from `e2e/`, with PostgreSQL and the backend virtualenv available):
+
+```bash
+npm ci
+npx playwright install chromium   # once per machine
+npm run seed                      # create + migrate + seed the disposable buildarena_e2e database
+npm test                          # starts the API, the SPA and a mock GitHub API on dedicated ports
+```
+
+The end-to-end suite starts the real API and SPA itself (ports 8002 and 5174)
+and never touches the network: evaluations read from a local mock GitHub API,
+so runs are deterministic. See [`e2e/README.md`](e2e/README.md).
+
 ### Verification snapshot
 
 At the current commit, the following has been verified:
@@ -320,15 +348,18 @@ At the current commit, the following has been verified:
   Ruff lint and format are clean.
 - **Frontend** — 37 Vitest tests pass; oxlint, Prettier, `tsc -b` and the
   production build are clean.
-- **CI** — GitHub Actions runs the same backend and frontend checks on every
-  push to `main` and on pull requests, with status checks required before
-  merging (the end-to-end suite is not in CI yet).
+- **End-to-end** — 9 Playwright tests pass locally against a disposable seeded
+  database (`buildarena_e2e`), the real API and SPA, and a mock GitHub API. The
+  suite covers anonymous browsing, the sign-in boundary, submission →
+  auto-evaluation → results, staff moderation and challenge authoring, and runs
+  offline (see [`e2e/README.md`](e2e/README.md)).
+- **CI** — GitHub Actions runs the backend, frontend and end-to-end checks on
+  every push to `main` and on pull requests, with status checks required before
+  merging.
 - **Local integration** — the backend, a seeded PostgreSQL database and the Vite
-  dev server run together. A Playwright smoke run covered the major routes,
-  created a real submission, observed its auto-triggered evaluation (including
-  repository metadata read live from the public GitHub API) and reported no
-  console or page errors. The smoke script is not committed and is not part of
-  CI; see Phase 3 in the [roadmap](docs/ROADMAP.md).
+  dev server run together; the committed Playwright suite drives them directly.
+  Repository metadata reads against the public GitHub API were exercised locally
+  in an earlier smoke run, including a real evaluation.
 
 ## API overview
 
@@ -374,9 +405,6 @@ examples in [`backend/README.md#api-overview`](backend/README.md#api-overview)):
 
 Current limitations (v1 scope — documented deliberately rather than hidden):
 
-- **No committed end-to-end suite yet**: backend tests and frontend checks run
-  in CI, but end-to-end verification remains a one-off local Playwright smoke
-  run (the script is not committed).
 - **Evaluations are synchronous** in the API process (`SynchronousExecutor`
   behind an `EvaluationExecutor` seam — queue-ready, but no worker is shipped).
 - **The rate limiter is in-process** and therefore per instance/worker; apply
@@ -404,7 +432,7 @@ Phase-by-phase scope, acceptance criteria and explicit non-goals live in
 | --- | --- | --- |
 | 1 | Backend API, evaluation, leaderboard, badges, audit | ✅ Done |
 | 2 | Student SPA and staff console | ✅ Done |
-| 3 | Live OAuth, committed E2E + CI, browser/security hardening, observability | ⏳ In progress |
+| 3 | Live OAuth, browser/security hardening, observability | ⏳ In progress |
 | 4 | Staging → production launch: managed PostgreSQL, static SPA, OAuth apps, backups, runbook | Planned |
 | 5 | Queue-backed evaluation, Redis rate limiting, notifications, manual review, exports, catalogue facets | Later (candidates) |
 
@@ -412,8 +440,9 @@ Immediate next actions (Phase 3):
 
 1. Create a GitHub OAuth App and verify login, logout and session revocation on
    a staging URL.
-2. Commit the Playwright end-to-end suite and add it to CI (the backend and
-   frontend checks already run and are required for merges).
+2. Once the end-to-end job has run green on `main`, add it to the required
+   status checks in the repository branch settings (backend and frontend checks
+   are already required).
 3. Add CSP/security headers at the hosting layer, then run accessibility and
    dependency audits.
 

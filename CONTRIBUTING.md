@@ -53,6 +53,14 @@ npm run typecheck     # tsc -b (strict)
 npm run build         # typecheck + production bundle
 ```
 
+End-to-end (from `e2e/`; requires PostgreSQL plus the backend virtualenv and the
+frontend dependencies):
+
+```bash
+npm run seed  # create + migrate + seed the disposable buildarena_e2e database
+npm test      # Playwright starts the API, SPA and mock GitHub API on dedicated ports
+```
+
 If you changed models or migrations, also verify migration health against a
 **disposable** database:
 
@@ -95,6 +103,7 @@ Never run migration experiments against a database that contains real data.
 | Frontend hooks | `frontend/src/hooks/` |
 | Design tokens and styles | `frontend/src/styles/globals.css` |
 | Frontend tests | `frontend/src/**/*.test.ts(x)` and `frontend/src/test/setup.ts` |
+| End-to-end suite | `e2e/` (specs in `e2e/tests/`, fixtures in `e2e/support/`, mock GitHub API in `e2e/scripts/`) |
 | CI workflows | `.github/workflows/ci.yml` |
 
 ## Code style
@@ -120,6 +129,15 @@ Frontend:
   modules) instead of ad-hoc fetches; all HTTP goes through `src/lib/api.ts`.
 - oxlint and Prettier are enforced; new interactive primitives should be
   keyboard-accessible and covered where practical.
+
+End-to-end:
+
+- Prefer durable assertions (URLs, badges, counters) over toast timing; the
+  suite runs one worker against a single seeded database, in file order.
+- `e2e/support/env.ts` mirrors the seed data in
+  `backend/scripts/seed_e2e.py`; keep both in sync when fixtures change. The
+  mock GitHub fixture (`e2e/scripts/mock-github.mjs`) must keep satisfying the
+  seeded challenge's checks.
 
 ## Documentation
 

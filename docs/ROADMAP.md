@@ -6,11 +6,11 @@ the completed phases live in [`ARCHITECTURE.md`](ARCHITECTURE.md),
 [`frontend/README.md`](../frontend/README.md).
 
 > **Current phase: Phase 3 — verification and hardening — in progress.** The
-> backend and frontend checks run in CI, with status checks required for merges
-> on `main`; live GitHub OAuth verification, the committed end-to-end suite,
-> browser/security hardening and observability remain. The v1 scope is
-> feature-complete and runs locally, but it has not been deployed and live
-> GitHub OAuth has not been exercised with real credentials.
+> backend, frontend and end-to-end checks run in CI, with status checks required
+> for merges on `main`; live GitHub OAuth verification, browser/security
+> hardening and observability remain. The v1 scope is feature-complete and runs
+> locally, but it has not been deployed and live GitHub OAuth has not been
+> exercised with real credentials.
 
 ## Phase overview
 
@@ -72,10 +72,11 @@ transport mocked.
   repository-metadata reads from the public GitHub API.
 
 **Exit criteria — met locally:** backend + seeded database + Vite dev server run
-together; the smoke run produced no console or page errors. The smoke script is
-not committed and is not part of CI.
+together; the smoke run produced no console or page errors. The smoke script
+itself was not committed — it is superseded by the committed Playwright suite in
+Phase 3.2.
 
-## Phase 3 — Verification and hardening ⏭ next
+## Phase 3 — Verification and hardening ⏳ in progress
 
 **Goal:** prove the platform against real infrastructure and make the checks
 repeatable.
@@ -107,21 +108,29 @@ required on `main` before merging —
 - **backend** — Ruff check/format and the pytest suite against disposable
   PostgreSQL service databases (`buildarena_test` + `buildarena_mig`, so the
   migration tests run instead of being skipped);
-- **frontend** — Vitest, oxlint, Prettier, `tsc -b` and the production build.
+- **frontend** — Vitest, oxlint, Prettier, `tsc -b` and the production build;
+- **e2e** — the Playwright suite against a disposable seeded database, the real
+  API and SPA, and a mock GitHub API.
 
-Still missing: the committed end-to-end suite. The Playwright smoke run remains
-a local, uncommitted script.
+**Delivered**
 
-**Work**
+- [`e2e/`](../e2e/README.md) — a committed Playwright project with dedicated
+  ports (SPA 5174, API 8002, mock GitHub 8990), a cookie-bootstrap helper fed by
+  seeded sessions (never real tokens) and a mock GitHub API that keeps
+  evaluations deterministic and offline.
+- [`backend/scripts/seed_e2e.py`](../backend/scripts/seed_e2e.py) — creates,
+  migrates and seeds the disposable `buildarena_e2e` database; it refuses to run
+  against any database whose name does not end in `_e2e`.
+- Coverage: anonymous browsing, the sign-in boundary, submission →
+  auto-evaluation → results, staff moderation (forced re-run, disqualify,
+  reinstate) and challenge authoring with draft/publish visibility.
+- Failure artifacts (Playwright report, traces, screenshots) are uploaded by the
+  CI job.
 
-- Add a Playwright project to the repository with a disposable seeded database
-  and a cookie-bootstrap helper (never real tokens).
-- Cover anonymous browsing, the sign-in boundary, submission → auto-evaluation →
-  results, staff moderation and challenge authoring.
-- Add an end-to-end job to CI and upload traces/screenshots on failure.
-
-**Done when:** CI is green on `main` and required for merges. Unit and API tests
-keep the GitHub transport mocked; any live-GitHub check is explicit and opt-in.
+**Done when:** CI is green on `main` with the end-to-end job running on every
+push and pull request. Unit and API tests keep the GitHub transport mocked; the
+end-to-end suite uses its mock GitHub API, so no check depends on the live
+GitHub service.
 
 ### 3.3 Browser and security hardening
 

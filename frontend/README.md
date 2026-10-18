@@ -7,11 +7,11 @@ update — plus the staff console for moderators and admins.
 Built with **Vite + React 19 + TypeScript** against the FastAPI backend in
 [`../backend`](../backend/README.md).
 
-> **Status.** The student flows and the staff console are implemented and were
+> **Status.** The student flows and the staff console are implemented and are
 > verified end-to-end against a local backend with seeded demo data (unit tests
-> plus a local Playwright smoke run across the major routes). Live GitHub OAuth
-> has **not** been exercised with real credentials yet — locally, sign-in was
-> simulated with backend-minted session cookies. See
+> plus the committed Playwright suite in [`../e2e`](../e2e/README.md)). Live
+> GitHub OAuth has **not** been exercised with real credentials yet — locally,
+> sign-in is simulated with backend-minted session cookies. See
 > [Known limitations](#known-limitations) and the project
 > [roadmap](../docs/ROADMAP.md) for the next phase.
 
@@ -160,11 +160,11 @@ failure, 204 handling), URL utils (formatting, deadlines, avatars), GitHub
 repo-URL parsing, and the button + switch primitives (including accessible-name
 wiring).
 
-End-to-end verification was a local Playwright smoke run (not committed):
-backend + seeded demo database, session cookies injected into the browser
-context, all major routes screenshotted and asserted free of console/page
-errors — including a real submission POST and its auto-triggered evaluation,
-whose repository checks read metadata live from the public GitHub API.
+End-to-end verification lives in the committed Playwright suite
+([`../e2e`](../e2e/README.md)): backend + seeded disposable database + this SPA,
+with session cookies injected into the browser context. It covers anonymous
+browsing, the sign-in boundary, the full submission and evaluation flow, staff
+moderation and challenge authoring — running offline against a mock GitHub API.
 
 ## Known limitations
 
@@ -173,8 +173,6 @@ whose repository checks read metadata live from the public GitHub API.
   origins have only been exercised on localhost.
 - The app is fully client-rendered: no SSR/SSG, and static hosts must rewrite
   unknown paths to `index.html` for client-side routing.
-- No committed end-to-end suite yet; the frontend checks (Vitest, oxlint,
-  Prettier, `tsc -b`, build) run in CI.
 - No Content-Security-Policy or security headers are shipped with the SPA; the
   static host must add them (Phase 3 in the roadmap).
 - The API issues `SameSite=Lax` cookies, so the SPA and API should share a site.
