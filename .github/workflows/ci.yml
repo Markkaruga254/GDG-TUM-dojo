@@ -8,6 +8,10 @@
 # TEST_MIGRATION_DATABASE_URL is set so the migration tests (upgrade, schema
 # drift, downgrade) run instead of being skipped. GitHub API calls stay mocked:
 # the suite never touches the network.
+#
+# The e2e job runs the committed Playwright suite (see e2e/README.md) against
+# the real stack: FastAPI + Vite + a disposable seeded PostgreSQL database and
+# a mock GitHub API, so end-to-end runs stay deterministic and offline too.
 
 name: CI
 
@@ -113,3 +117,77 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+  e2e:
+    name: End-to-end — Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: buildarena
+          POSTGRES_PASSWORD: buildarena
+          POSTGRES_DB: buildarena_e2e
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U buildarena -d buildarena_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql+psycopg://buildarena:buildarena@127.0.0.1:5433/buildarena_e2e
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Prepare E2E database (migrate + seed)
+        working-directory: e2e
+        run: npm run seed
+
+      - name: Run Playwright suite
+        working-directory: e2e
+        run: npm test
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 7
