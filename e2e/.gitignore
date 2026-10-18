@@ -1,0 +1,9 @@
+node_modules
+
+# Seeded session tokens for the disposable E2E database — never commit.
+.sessions.json
+
+# Playwright artifacts
+playwright-report
+test-results
+blob-report

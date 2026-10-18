@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "rules": {
+    "import/no-unassigned-import": "off"
+  },
+  "ignorePatterns": ["node_modules", "playwright-report", "test-results", "blob-report"]
+}
