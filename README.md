@@ -25,16 +25,16 @@ verification, hardening and deployment remain.**
 
 | Area | State | Notes |
 | --- | --- | --- |
-| Backend API | ✅ Complete | FastAPI + PostgreSQL; 35 paths / 37 operations; evaluation engine, leaderboard and badge policies, audit trail |
-| Frontend SPA | ✅ Complete | React 19 + Vite; 20 route entries covering the student flows and the staff console; dark/light themes |
-| Automated tests | ✅ Passing | 209 backend pytest tests · 37 frontend Vitest tests |
-| End-to-end suite | ✅ Passing locally | Committed Playwright project (9 tests) with a disposable seeded database and a mock GitHub API; covers anonymous browsing, the sign-in boundary, submission → auto-evaluation → results, staff moderation and challenge authoring |
-| Local full-stack run | ✅ Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised |
-| Live GitHub OAuth | ⚠️ Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
-| Live GitHub metadata | ✅ Exercised locally | Repository checks ran against the public GitHub API in local runs; not yet exercised from a deployment |
-| CI pipeline | ✅ Enforced | GitHub Actions — backend (pytest + Ruff), frontend (Vitest, oxlint, Prettier, tsc, build) and end-to-end (Playwright, failure artifacts uploaded); status checks required on `main` before merging |
-| Staging / production | ⛔ Not started | Deployment topology and the Render guide are documented, but unexercised |
-| License | ⛔ Undecided | Owner decision required |
+| Backend API |  Complete | FastAPI + PostgreSQL; 35 paths / 37 operations; evaluation engine, leaderboard and badge policies, audit trail |
+| Frontend SPA |  Complete | React 19 + Vite; 20 route entries covering the student flows and the staff console; dark/light themes |
+| Automated tests |  Passing | 209 backend pytest tests · 37 frontend Vitest tests |
+| End-to-end suite |  Passing locally | Committed Playwright project (9 tests) with a disposable seeded database and a mock GitHub API; covers anonymous browsing, the sign-in boundary, submission → auto-evaluation → results, staff moderation and challenge authoring |
+| Local full-stack run |  Verified | Cookie session + CSRF, submission → auto-evaluation → results, staff moderation; all major routes exercised |
+| Live GitHub OAuth |  Unverified | Exercised only against the mocked transport; no real OAuth app credentials yet |
+| Live GitHub metadata |  Exercised locally | Repository checks ran against the public GitHub API in local runs; not yet exercised from a deployment |
+| CI pipeline |  Enforced | GitHub Actions — backend (pytest + Ruff), frontend (Vitest, oxlint, Prettier, tsc, build) and end-to-end (Playwright, failure artifacts uploaded); status checks required on `main` before merging |
+| Staging / production |  Not started | Deployment topology and the Render guide are documented, but unexercised |
+| License |  Undecided | Owner decision required |
 
 Planned work, acceptance criteria and explicit non-goals are in
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -430,9 +430,9 @@ Phase-by-phase scope, acceptance criteria and explicit non-goals live in
 
 | Phase | Focus | State |
 | --- | --- | --- |
-| 1 | Backend API, evaluation, leaderboard, badges, audit | ✅ Done |
-| 2 | Student SPA and staff console | ✅ Done |
-| 3 | Live OAuth, browser/security hardening, observability | ⏳ In progress |
+| 1 | Backend API, evaluation, leaderboard, badges, audit |  Done |
+| 2 | Student SPA and staff console |  Done |
+| 3 | Live OAuth, browser/security hardening, observability | In progress |
 | 4 | Staging → production launch: managed PostgreSQL, static SPA, OAuth apps, backups, runbook | Planned |
 | 5 | Queue-backed evaluation, Redis rate limiting, notifications, manual review, exports, catalogue facets | Later (candidates) |
 
