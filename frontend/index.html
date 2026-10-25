@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' %VITE_API_BASE_URL% http://localhost:8000 http://localhost:8002 http://localhost:8990; img-src 'self' data: https://avatars.githubusercontent.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark light" />

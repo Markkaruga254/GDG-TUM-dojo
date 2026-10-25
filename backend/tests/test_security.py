@@ -75,6 +75,7 @@ def test_security_headers_and_request_id_are_applied(client):
     assert response.headers["X-Frame-Options"] == "DENY"
     assert response.headers["Referrer-Policy"] == "no-referrer"
     assert "geolocation=()" in response.headers["Permissions-Policy"]
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
 
 
 def test_auth_responses_are_marked_no_store(client):

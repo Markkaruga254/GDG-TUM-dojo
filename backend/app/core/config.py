@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     oauth_verifier_cookie_name: str = "ba_oauth_verifier"
     session_cookie_secure: bool | None = None
     cookie_domain: str = ""
+    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     oauth_state_ttl_seconds: int = Field(default=600, ge=60, le=3600)
 
     # --- Limits -----------------------------------------------------------------
